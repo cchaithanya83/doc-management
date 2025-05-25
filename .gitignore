@@ -1,0 +1,6 @@
+backend.zip
+venv
+node_module
+env
+uploads
+__pycache__
