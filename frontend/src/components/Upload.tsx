@@ -1,6 +1,8 @@
+
 import * as React from "react";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 interface FormData {
   category_id: string;
@@ -37,15 +39,14 @@ const UploadDocument: React.FC = () => {
   });
   const [uploading, setUploading] = useState<boolean>(false);
   const [message, setMessage] = useState<string>("");
+  const navigate = useNavigate();
 
-  // Define document types with IDs and labels
   const docTypes: DocType[] = [
     { id: "1", label: "KYC" },
     { id: "2", label: "Accounting" },
     { id: "3", label: "Legal" },
   ];
 
-  // Define subtypes with IDs per document type
   const subtypes: { [key: string]: Subtype[] } = {
     "1": [
       { id: "1", label: "Aadhar" },
@@ -73,21 +74,19 @@ const UploadDocument: React.FC = () => {
       setFormData((prev) => ({ ...prev, uploaded_by: storedUid }));
     } else {
       setMessage("No user ID found. Please log in.");
+      setTimeout(() => navigate("/login"), 2000);
     }
-  }, []);
+  }, [navigate]);
 
   const handleInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => {
-      if (name === "doc_type_id") {
-        return { ...prev, [name]: value, subtype_id: "" };
-      }
-      return { ...prev, [name]: value };
-    });
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+      ...(name === "doc_type_id" ? { subtype_id: "" } : {}),
+    }));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,7 +118,7 @@ const UploadDocument: React.FC = () => {
         !formData.party_main_account ||
         !formData.party_sub_account
       ) {
-        setMessage("All fields are required.");
+        setMessage("All required fields must be filled.");
         setUploading(false);
         return;
       }
@@ -137,7 +136,6 @@ const UploadDocument: React.FC = () => {
       );
 
       setMessage(`Upload successful: ${response.data.file_name}`);
-      // Reset form after successful upload
       setFormData({
         category_id: "",
         doc_type_id: "",
@@ -145,129 +143,177 @@ const UploadDocument: React.FC = () => {
         doc_date: "",
         party_main_account: "",
         party_sub_account: "",
-        uploaded_by: formData.uploaded_by, // Keep uid
+        uploaded_by: formData.uploaded_by,
         remarks: "",
       });
       setFile(null);
+      setTimeout(() => navigate("/"), 2000); // Redirect to dashboard after 2 seconds
     } catch (error: any) {
       console.error("Upload error:", error.response?.data || error.message);
-      setMessage("Upload failed. Check the console for details.");
+      setMessage("Upload failed. Please try again.");
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <div className="max-w-md mx-auto p-4 bg-gray-800 text-white rounded-lg shadow-md min-h-screen flex items-center">
-      <div className="w-full">
-        <h2 className="text-xl font-bold mb-4 text-center">Upload Document</h2>
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
+        <h2 className="text-3xl font-bold text-gray-800 text-center mb-6">Upload Document</h2>
 
         {message && (
-          <p className="mb-4 text-yellow-400 text-center">{message}</p>
+          <p className={`text-sm text-center mb-4 p-2 rounded ${message.includes("success") ? "text-green-600 bg-green-50" : "text-red-500 bg-red-50"}`}>
+            {message}
+          </p>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="file"
-            onChange={handleFileChange}
-            required
-            className="block w-full text-gray-200"
-          />
-
-          <input
-            type="text"
-            name="category_id"
-            placeholder="Category ID"
-            value={formData.category_id}
-            onChange={handleInputChange}
-            required
-            className="w-full p-2 bg-gray-700 rounded text-gray-200"
-          />
-
-          <select
-            name="doc_type_id"
-            value={formData.doc_type_id}
-            onChange={handleInputChange}
-            required
-            className="w-full p-2 bg-gray-700 rounded text-gray-200"
-          >
-            <option value="" disabled>
-              Select Document Type
-            </option>
-            {docTypes.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.label}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label htmlFor="file" className="block text-sm font-medium text-gray-700 mb-1">
+              Select File
+            </label>
+            <input
+              id="file"
+              type="file"
+              onChange={handleFileChange}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-gray-50 text-gray-800 placeholder-gray-400 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"
+            />
+          </div>
+          <div>
+            <label htmlFor="category_id" className="block text-sm font-medium text-gray-700 mb-1">
+              Category ID
+            </label>
+            <input
+              id="category_id"
+              type="text"
+              name="category_id"
+              placeholder="Enter Category ID"
+              value={formData.category_id}
+              onChange={handleInputChange}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-gray-50 text-gray-800 placeholder-gray-400 transition-colors"
+            />
+          </div>
+          <div>
+            <label htmlFor="doc_type_id" className="block text-sm font-medium text-gray-700 mb-1">
+              Document Type
+            </label>
+            <select
+              id="doc_type_id"
+              name="doc_type_id"
+              value={formData.doc_type_id}
+              onChange={handleInputChange}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-gray-50 text-gray-800 placeholder-gray-400 transition-colors"
+            >
+              <option value="" disabled>
+                Select Document Type
               </option>
-            ))}
-          </select>
-
-          <select
-            name="subtype_id"
-            value={formData.subtype_id}
-            onChange={handleInputChange}
-            required
-            disabled={!formData.doc_type_id}
-            className="w-full p-2 bg-gray-700 rounded text-gray-200"
-          >
-            <option value="" disabled>
-              Select Subtype
-            </option>
-            {formData.doc_type_id &&
-              subtypes[formData.doc_type_id]?.map((subtype) => (
-                <option key={subtype.id} value={subtype.id}>
-                  {subtype.label}
+              {docTypes.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.label}
                 </option>
               ))}
-          </select>
-
-          <input
-            type="date"
-            name="doc_date"
-            value={formData.doc_date}
-            onChange={handleInputChange}
-            required
-            className="w-full p-2 bg-gray-700 rounded text-gray-200"
-          />
-          <input
-            type="text"
-            name="party_main_account"
-            placeholder="Main Account"
-            value={formData.party_main_account}
-            onChange={handleInputChange}
-            required
-            className="w-full p-2 bg-gray-700 rounded text-gray-200"
-          />
-          <input
-            type="text"
-            name="party_sub_account"
-            placeholder="Sub Account"
-            value={formData.party_sub_account}
-            onChange={handleInputChange}
-            required
-            className="w-full p-2 bg-gray-700 rounded text-gray-200"
-          />
-          {/* <input
-            type="text"
-            name="uploaded_by"
-            placeholder="Uploaded By"
-            value={formData.uploaded_by}
-            readOnly
-            className="w-full p-2 bg-gray-700 rounded text-gray-200 cursor-not-allowed"
-          /> */}
-          <textarea
-            name="remarks"
-            placeholder="Remarks (Optional)"
-            value={formData.remarks}
-            onChange={handleInputChange}
-            className="w-full p-2 bg-gray-700 rounded text-gray-200"
-          ></textarea>
-
+            </select>
+          </div>
+          <div>
+            <label htmlFor="subtype_id" className="block text-sm font-medium text-gray-700 mb-1">
+              Subtype
+            </label>
+            <select
+              id="subtype_id"
+              name="subtype_id"
+              value={formData.subtype_id}
+              onChange={handleInputChange}
+              required
+              disabled={!formData.doc_type_id}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-gray-50 text-gray-800 placeholder-gray-400 transition-colors disabled:bg-gray-200"
+            >
+              <option value="" disabled>
+                Select Subtype
+              </option>
+              {formData.doc_type_id &&
+                subtypes[formData.doc_type_id]?.map((subtype) => (
+                  <option key={subtype.id} value={subtype.id}>
+                    {subtype.label}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="doc_date" className="block text-sm font-medium text-gray-700 mb-1">
+              Document Date
+            </label>
+            <input
+              id="doc_date"
+              type="date"
+              name="doc_date"
+              value={formData.doc_date}
+              onChange={handleInputChange}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-gray-50 text-gray-800 placeholder-gray-400 transition-colors"
+            />
+          </div>
+          <div>
+            <label htmlFor="party_main_account" className="block text-sm font-medium text-gray-700 mb-1">
+              Main Account
+            </label>
+            <input
+              id="party_main_account"
+              type="text"
+              name="party_main_account"
+              placeholder="Enter Main Account"
+              value={formData.party_main_account}
+              onChange={handleInputChange}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-gray-50 text-gray-800 placeholder-gray-400 transition-colors"
+            />
+          </div>
+          <div>
+            <label htmlFor="party_sub_account" className="block text-sm font-medium text-gray-700 mb-1">
+              Sub Account
+            </label>
+            <input
+              id="party_sub_account"
+              type="text"
+              name="party_sub_account"
+              placeholder="Enter Sub Account"
+              value={formData.party_sub_account}
+              onChange={handleInputChange}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-gray-50 text-gray-800 placeholder-gray-400 transition-colors"
+            />
+          </div>
+          <div>
+            <label htmlFor="remarks" className="block text-sm font-medium text-gray-700 mb-1">
+              Remarks (Optional)
+            </label>
+            <textarea
+              id="remarks"
+              name="remarks"
+              placeholder="Enter remarks"
+              value={formData.remarks}
+              onChange={handleInputChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-gray-50 text-gray-800 placeholder-gray-400 transition-colors"
+            />
+          </div>
           <button
             type="submit"
             disabled={uploading || !formData.uploaded_by}
-            className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:bg-gray-500 disabled:cursor-not-allowed transition"
+            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors font-medium disabled:bg-blue-400 disabled:cursor-not-allowed"
           >
-            {uploading ? "Uploading..." : "Upload"}
+            {uploading ? (
+              <span className="flex items-center justify-center">
+                <svg className="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Uploading...
+              </span>
+            ) : (
+              "Upload"
+            )}
           </button>
         </form>
       </div>
