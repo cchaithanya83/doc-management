@@ -79,6 +79,12 @@ const Dashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const navigate = useNavigate();
 
+  const categories: { id: string; label: string }[] = [
+    { id: "1", label: "Advertisement" },
+    { id: "2", label: "Vendor" },
+    { id: "3", label: "Circulation" },
+  ];
+
   const docTypes: DocType[] = [
     { id: "1", label: "KYC" },
     { id: "2", label: "Accounting" },
@@ -227,7 +233,15 @@ const Dashboard: React.FC = () => {
       setIsLoading(false);
     }
   };
-
+  const handleClearFilter = () => {
+    setFilterData({
+      category_id: "",
+      doc_type_id: "",
+      from_date: "",
+      to_date: "",
+    });
+    fetchDocs(false);
+  };
   const handleFilterSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     await fetchDocs(true);
@@ -246,17 +260,24 @@ const Dashboard: React.FC = () => {
               htmlFor="category_id"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Category ID
+              Category
             </label>
-            <input
+            <select
               id="category_id"
-              type="text"
               name="category_id"
-              placeholder="Enter Category ID"
               value={filterData.category_id}
               onChange={handleFilterChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-gray-50 text-gray-800 placeholder-gray-400 transition-colors"
-            />
+            >
+              <option value="" disabled>
+                Select Category
+              </option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.label}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label
@@ -314,39 +335,49 @@ const Dashboard: React.FC = () => {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-gray-50 text-gray-800 placeholder-gray-400 transition-colors"
             />
           </div>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors font-medium disabled:bg-blue-400 disabled:cursor-not-allowed"
-          >
-            {isLoading ? (
-              <span className="flex items-center justify-center">
-                <svg
-                  className="animate-spin h-5 w-5 mr-2 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Filtering...
-              </span>
-            ) : (
-              "Apply Filter"
-            )}
-          </button>
+          <div className="flex space-x-2">
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors font-medium disabled:bg-blue-400 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <span className="flex items-center justify-center">
+                  <svg
+                    className="animate-spin h-5 w-5 mr-2 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Filtering...
+                </span>
+              ) : (
+                "Apply Filter"
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={handleClearFilter}
+              disabled={isLoading}
+              className="flex-1 bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              Clear Filter
+            </button>
+          </div>
         </form>
       </div>
 
@@ -394,14 +425,26 @@ const Dashboard: React.FC = () => {
                 className="flex justify-between items-center bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200"
               >
                 <div className="flex items-center space-x-4">
-                  <img
-                    src={`http://127.0.0.1:8000/documents/file/${doc.id}`}
-                    alt={doc.file_name}
-                    className="w-16 h-16 object-cover rounded"
-                    onError={(e) =>
-                      (e.currentTarget.src = "/fallback-image.png")
-                    } // Fallback image
-                  />
+                  {doc.file_name.toLowerCase().endsWith(".pdf") ? (
+                    <embed
+                      src={`http://127.0.0.1:8000/documents/file/${doc.id}`}
+                      type="application/pdf"
+                      className="w-16 h-16 object-cover rounded"
+                      onError={(e) =>
+                        (e.currentTarget.outerHTML =
+                          '<img src="/fallback-image.png" class="w-16 h-16 object-cover rounded" />')
+                      }
+                    />
+                  ) : (
+                    <img
+                      src={`http://127.0.0.1:8000/documents/file/${doc.id}`}
+                      alt={doc.file_name}
+                      className="w-16 h-16 object-cover rounded"
+                      onError={(e) =>
+                        (e.currentTarget.src = "/fallback-image.png")
+                      }
+                    />
+                  )}
                   <div>
                     <p className="font-semibold text-gray-800">
                       {doc.file_name}
@@ -465,16 +508,24 @@ const Dashboard: React.FC = () => {
                     htmlFor="edit_category_id"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Category ID
+                    Category
                   </label>
-                  <input
+                  <select
                     id="edit_category_id"
-                    type="text"
                     name="category_id"
                     value={editData.category_id}
                     onChange={handleEditChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-gray-50 text-gray-800 placeholder-gray-400 transition-colors"
-                  />
+                  >
+                    <option value="" disabled>
+                      Select Category
+                    </option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label
@@ -644,17 +695,34 @@ const Dashboard: React.FC = () => {
                 <h2 className="text-xl font-bold">Document Details</h2>
               </div>
               <div className="p-6 space-y-4">
-                <img
-                  src={`http://127.0.0.1:8000/documents/file/${selectedDoc.id}`}
-                  alt={selectedDoc.file_name}
-                  className="w-full h-64 object-contain rounded"
-                  onError={(e) => (e.currentTarget.src = "/fallback-image.png")} // Fallback image
-                />
+                {selectedDoc.file_name.toLowerCase().endsWith(".pdf") ? (
+                  <embed
+                    src={`http://127.0.0.1:8000/documents/file/${selectedDoc.id}`}
+                    type="application/pdf"
+                    className="w-full h-64 object-contain rounded"
+                    onError={(e) =>
+                      (e.currentTarget.outerHTML =
+                        '<img src="/fallback-image.png" class="w-full h-64 object-contain rounded" />')
+                    }
+                  />
+                ) : (
+                  <img
+                    src={`http://127.0.0.1:8000/documents/file/${selectedDoc.id}`}
+                    alt={selectedDoc.file_name}
+                    className="w-full h-64 object-contain rounded"
+                    onError={(e) =>
+                      (e.currentTarget.src = "/fallback-image.png")
+                    }
+                  />
+                )}
                 <p>
                   <strong>File Name:</strong> {selectedDoc.file_name}
                 </p>
                 <p>
-                  <strong>Category ID:</strong> {selectedDoc.category_id}
+                  <strong>Category:</strong>{" "}
+                  {categories.find(
+                    (c) => c.id === selectedDoc.category_id.toString()
+                  )?.label || selectedDoc.category_id}
                 </p>
                 <p>
                   <strong>Document Type:</strong>{" "}
@@ -705,5 +773,4 @@ const Dashboard: React.FC = () => {
     </div>
   );
 };
-
 export default Dashboard;
